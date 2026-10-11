@@ -6,9 +6,9 @@
   const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
   const STD_PORTIONS = [
     { label: 'g', grams: 1 },
-    { label: 'oz (28.35 g)', grams: 28.3495 },
     { label: '100 g', grams: 100 },
   ];
+  const kJ = (kcal) => (kcal == null ? null : kcal * 4.184);
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -63,7 +63,7 @@
     view: 'diary',
     date: today(),
     pendingMeal: null,
-    search: { query: '', ds: 'whole', page: 1, totalPages: 0, totalHits: 0, results: [], loading: false, error: '' },
+    search: { query: '', ds: 'uk', page: 1, totalPages: 0, totalHits: 0, results: [], loading: false, error: '' },
   };
 
   function show(view) {
@@ -153,7 +153,7 @@
     };
     $('#summary').innerHTML = `
       <div class="cal-head">
-        <div class="hero num">${fmt(kcal)} <small>of ${fmt(kcalT)} kcal</small></div>
+        <div class="hero num">${fmt(kcal)} <small>of ${fmt(kcalT)} kcal · ${fmt(kJ(kcal))} kJ</small></div>
         <div class="muted num">${left >= 0 ? `${fmt(left)} kcal left` : `<span class="flag over">▲ ${fmt(-left)} kcal over</span>`}</div>
       </div>
       <div class="bar big" role="img" aria-label="${Math.round(kcalPct)}% of calorie target"><span class="${kcalPct > 100 ? 'fill-over' : 'fill-accent'}" style="width:${Math.min(100, kcalPct)}%"></span></div>
@@ -190,7 +190,7 @@
         return `<div class="entry">
           <div class="name" data-edit="${e.id}">
             <div class="title">${esc(f.name)}</div>
-            <div class="sub num">${fmt(e.qty)} × ${esc(e.portionLabel)} · ${fmt(e.grams)} g · P ${p(t.protein)} · C ${p(t.carbs)} · F ${p(t.fat)}</div>
+            <div class="sub num">${e.portionLabel === 'g' ? '' : `${fmt(e.qty)} × ${esc(e.portionLabel)} · `}${fmt(e.grams)} g · P ${p(t.protein)} · C ${p(t.carbs)} · F ${p(t.fat)}</div>
           </div>
           <div class="kcal num">${t.energy == null ? '—' : fmt(t.energy * k)}</div>
           <button class="btn ghost small" data-remove="${e.id}" aria-label="Remove">✕</button>
@@ -247,14 +247,14 @@
   function renderSearch() {
     const s = ui.search;
     const hint = ui.pendingMeal ? `Adding to <b>${esc(ui.pendingMeal)}</b> on ${esc(prettyDate(ui.date))}. ` : '';
-    $('#search-hint').innerHTML = hint + 'Results come from USDA FoodData Central. Pick a food to download its full nutrient breakdown (100+ nutrients for whole foods) into your library.';
+    $('#search-hint').innerHTML = hint + 'Pick a food to save its full nutrient breakdown into your library. All amounts are per 100 g.';
     const box = $('#search-results');
     if (!s.query && !s.results.length) { box.innerHTML = ''; return; }
     let html = '';
     if (s.results.length) {
       html += `<div class="card list">${s.results.map((r, i) => {
         const t = trackedPer100(r);
-        const saved = Store.getFood('fdc:' + r.fdcId);
+        const saved = Store.getFood(r.id);
         return `<div class="result" data-result="${i}" tabindex="0" role="button">
           <div>
             <div class="title">${esc(r.name)}</div>
@@ -311,13 +311,13 @@
     if (!dialog.open) dialog.showModal();
 
     let food = opts.food;
-    if (!food && opts.fdcId) {
-      food = Store.getFood('fdc:' + opts.fdcId);
+    if (!food && opts.id) {
+      food = Store.getFood(opts.id);
       if (!food) {
         body.innerHTML = `<div class="dialog-head"><h2>${esc(opts.name || 'Loading…')}</h2><button class="btn ghost" data-close>✕</button></div>
-          <p class="muted">Downloading full nutrient profile from USDA…</p>`;
+          <p class="muted">Downloading full nutrient profile…</p>`;
         try {
-          food = await Api.getFood(opts.fdcId);
+          food = await Api.getFood(opts.id);
           Store.putFood(food);
           if (ui.view === 'search') renderSearch();
         } catch (e) {
@@ -333,21 +333,23 @@
   }
 
   function portionsFor(food) {
-    return (food.portions || []).concat(STD_PORTIONS);
+    return (food.portions || []).filter((p) => Nutrients.metricPortion(p.label)).concat(STD_PORTIONS);
   }
 
   function renderFoodDialog() {
     const food = dlg.food, entry = dlg.entry;
     const portions = portionsFor(food);
+    const gIdx = portions.length - STD_PORTIONS.length;
     let pIdx = 0, qty = 1;
     if (entry) {
       const i = portions.findIndex((p) => p.label === entry.portionLabel);
-      if (i >= 0) { pIdx = i; qty = entry.qty; } else { pIdx = portions.length - 3; qty = entry.grams; }
-    } else if (!(food.portions || []).length) {
-      pIdx = portions.length - 3; qty = 100;
+      if (i >= 0) { pIdx = i; qty = entry.qty; } else { pIdx = gIdx; qty = +entry.grams.toFixed(1); }
+    } else if (gIdx === 0) {
+      pIdx = gIdx; qty = 100;
     }
     const meal = entry ? entry.meal : ui.pendingMeal || guessMeal();
-    const link = food.fdcId ? `<a href="https://fdc.nal.usda.gov/food-details/${encodeURIComponent(food.fdcId)}/nutrients" target="_blank" rel="noopener">View on USDA</a>` : '';
+    const url = food.url || (food.fdcId ? `https://fdc.nal.usda.gov/food-details/${encodeURIComponent(food.fdcId)}/nutrients` : '');
+    const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">View source</a>` : '';
     const nCount = Object.keys(food.nutrients || {}).length;
 
     $('#food-dialog-body').innerHTML = `
@@ -396,7 +398,8 @@
 
     const groups = {};
     Object.entries(food.nutrients || {}).forEach(([num, n]) => {
-      (groups[deepGroupOf(num)] = groups[deepGroupOf(num)] || []).push(Object.assign({ num }, n));
+      const gid = deepGroupOf(num, n.group);
+      (groups[gid] = groups[gid] || []).push(Object.assign({ num }, n));
     });
     const deep = DEEP_GROUPS.filter((dg) => groups[dg.id]).map((dg) => {
       const rows = groups[dg.id]
@@ -412,7 +415,7 @@
         <span class="toggle"><button type="button" data-per="amt" class="${dlg.per100 ? '' : 'on'}">Selected amount</button><button type="button" data-per="100" class="${dlg.per100 ? 'on' : ''}">Per 100 g</button></span>
       </div>
       <div class="quick num">
-        <div><b>${fmt(v('energy'))}</b><span>kcal</span></div>
+        <div><b>${fmt(v('energy'))}</b><span>kcal · ${fmt(kJ(v('energy')))} kJ</span></div>
         <div><b>${fmt(v('protein'))} g</b><span>Protein</span></div>
         <div><b>${fmt(v('carbs'))} g</b><span>Carbs</span></div>
         <div><b>${fmt(v('fat'))} g</b><span>Fat</span></div>
@@ -492,7 +495,7 @@
     const t = existing ? trackedPer100(existing) : {};
     const val = (key) => (existing && t[key] != null ? +(t[key] * sGrams / 100).toFixed(3) : '');
     const field = (d) => `<label>${esc(d.name)} (${d.unit})<input type="number" step="any" min="0" name="n_${d.key}" value="${val(d.key)}"></label>`;
-    const main = ['energy', 'protein', 'carbs', 'fat', 'fiber', 'sugars', 'satFat', 'sodium'];
+    const main = ['energy', 'protein', 'carbs', 'fat', 'satFat', 'sugars', 'fiber', 'salt'];
     $('#custom-form').innerHTML = `
       <div class="dialog-head"><h2>${existing ? 'Edit' : 'New'} custom food</h2><button class="btn ghost" type="button" data-close aria-label="Close">✕</button></div>
       <p class="small muted">Enter values from a nutrition label, per serving. Leave unknown nutrients blank.</p>
@@ -676,7 +679,7 @@
     $('#search-results').addEventListener('click', (e) => {
       if (e.target.id === 'load-more') { runSearch(true); return; }
       const r = e.target.closest('[data-result]');
-      if (r) { const f = ui.search.results[Number(r.dataset.result)]; openFood({ fdcId: f.fdcId, name: f.name }); }
+      if (r) { const f = ui.search.results[Number(r.dataset.result)]; openFood({ id: f.id, name: f.name }); }
     });
     $('#search-results').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target.matches('[data-result]')) e.target.click();

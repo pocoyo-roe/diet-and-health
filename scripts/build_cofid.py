@@ -7,6 +7,7 @@ USDA foods share one nutrient model; everything else is keyed "c:<CoFID code>".
 All values are per 100 g of food (alcoholic drinks: per 100 ml).
 """
 import json
+import os
 import re
 import sys
 
@@ -122,6 +123,7 @@ def main(src, out):
         "foods": packed,
     }
     text = "window.COFID = " + json.dumps(data, separators=(",", ":"), ensure_ascii=False) + ";\n"
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(text)
     print(f"{len(packed)} foods, {len(nutrients)} nutrients, {len(text) / 1e6:.2f} MB -> {out}")

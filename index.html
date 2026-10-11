@@ -42,11 +42,11 @@
     <!-- Search -->
     <section class="view" id="view-search">
       <form class="card searchbar" id="search-form">
-        <input type="search" id="search-q" placeholder="Search foods, e.g. salmon, spinach, greek yogurt…" autocomplete="off" required>
+        <input type="search" id="search-q" placeholder="Search foods, e.g. salmon, spinach, porridge oats…" autocomplete="off" required>
         <select id="search-ds"></select>
         <button class="btn primary" type="submit">Search</button>
       </form>
-      <p class="muted small" id="search-hint">Results come from USDA FoodData Central. Pick a food to download its full nutrient breakdown (100+ nutrients for whole foods) into your library.</p>
+      <p class="muted small" id="search-hint"></p>
       <div id="search-results"></div>
     </section>
 
@@ -79,8 +79,8 @@
     <!-- Settings -->
     <section class="view" id="view-settings">
       <div class="card">
-        <h2>USDA API key</h2>
-        <p class="small muted">Searches use the free USDA FoodData Central API. Without a key the shared <code>DEMO_KEY</code> is used, which is limited to a few requests per hour.
+        <h2>USDA API key <span class="muted small">(optional)</span></h2>
+        <p class="small muted">Only needed for the US (USDA) datasets — the UK databases need no key. Without a key the shared <code>DEMO_KEY</code> is used, which is limited to a few requests per hour.
           Get your own free key (takes a minute) at <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener">fdc.nal.usda.gov/api-key-signup</a>.</p>
         <div class="row">
           <input type="text" id="api-key" placeholder="Paste your API key (leave empty for DEMO_KEY)" autocomplete="off">
@@ -98,6 +98,7 @@
       </div>
       <div class="card">
         <h2>Your data</h2>
+        <p class="small muted">UK food data: McCance and Widdowson’s Composition of Foods Integrated Dataset 2021 (Office for Health Improvement and Disparities), Open Government Licence v3.0. Packaged products: Open Food Facts (ODbL).</p>
         <p class="small muted">Everything is stored in this browser only. Export a backup to move it to another device.</p>
         <div class="row">
           <button class="btn" id="export">Export backup</button>

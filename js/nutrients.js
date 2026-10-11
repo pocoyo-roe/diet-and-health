@@ -14,9 +14,9 @@
     { key: 'fat', name: 'Total fat', unit: 'g', group: 'macro', nums: ['204', '298'] },
 
     // Carbohydrate detail
-    { key: 'fiber', name: 'Fiber', unit: 'g', group: 'carbs', nums: ['291', '293'] },
-    { key: 'sugars', name: 'Total sugars', unit: 'g', group: 'carbs', nums: ['269', '269.3'] },
-    { key: 'addedSugars', name: 'Added sugars', unit: 'g', group: 'carbs', nums: ['539'], limit: true },
+    { key: 'fiber', name: 'Fibre', unit: 'g', group: 'carbs', nums: ['291', '293', 'c:ENGFIB'] },
+    { key: 'sugars', name: 'Total sugars', unit: 'g', group: 'carbs', nums: ['269', '269.3'], limit: true },
+    { key: 'addedSugars', name: 'Added / free sugars', unit: 'g', group: 'carbs', nums: ['539'], limit: true },
 
     // Fats
     { key: 'satFat', name: 'Saturated fat', unit: 'g', group: 'fats', nums: ['606'], limit: true },
@@ -30,7 +30,7 @@
     { key: 'cholesterol', name: 'Cholesterol', unit: 'mg', group: 'fats', nums: ['601'], limit: true },
 
     // Vitamins
-    { key: 'vitA', name: 'Vitamin A (RAE)', unit: 'µg', group: 'vitamins', nums: ['320'] },
+    { key: 'vitA', name: 'Vitamin A', unit: 'µg', group: 'vitamins', nums: ['320'] },
     { key: 'vitC', name: 'Vitamin C', unit: 'mg', group: 'vitamins', nums: ['401'] },
     { key: 'vitD', name: 'Vitamin D', unit: 'µg', group: 'vitamins', nums: ['328', { num: '324', factor: 0.025 }] },
     { key: 'vitE', name: 'Vitamin E', unit: 'mg', group: 'vitamins', nums: ['323'] },
@@ -51,6 +51,7 @@
     { key: 'magnesium', name: 'Magnesium', unit: 'mg', group: 'minerals', nums: ['304'] },
     { key: 'phosphorus', name: 'Phosphorus', unit: 'mg', group: 'minerals', nums: ['305'] },
     { key: 'potassium', name: 'Potassium', unit: 'mg', group: 'minerals', nums: ['306'] },
+    { key: 'salt', name: 'Salt', unit: 'g', group: 'minerals', nums: ['salt'], limit: true },
     { key: 'sodium', name: 'Sodium', unit: 'mg', group: 'minerals', nums: ['307'], limit: true },
     { key: 'zinc', name: 'Zinc', unit: 'mg', group: 'minerals', nums: ['309'] },
     { key: 'copper', name: 'Copper', unit: 'mg', group: 'minerals', nums: ['312'] },
@@ -88,11 +89,48 @@
     caffeine: 400,
   };
 
-  // RDA / AI values for adults aged 19-50 (US National Academies).
+  // UK food-label Reference Intakes (energy, macros, salt) and the
+  // retained-EU Nutrient Reference Values used for vitamins and minerals.
+  const UK_RI = {
+    energy: 2000, protein: 50, carbs: 260, fat: 70, satFat: 20, sugars: 90, salt: 6, fiber: 30,
+    vitA: 800, vitC: 80, vitD: 5, vitE: 12, vitK: 75,
+    thiamin: 1.1, riboflavin: 1.4, niacin: 16, pantothenic: 6, vitB6: 1.4,
+    biotin: 50, folate: 200, vitB12: 2.5,
+    calcium: 800, iron: 14, magnesium: 375, phosphorus: 700, potassium: 2000,
+    zinc: 10, copper: 1, manganese: 2, selenium: 55, iodine: 150, fluoride: 3500,
+    caffeine: 400,
+  };
+
+  // UK Reference Nutrient Intakes (COMA/SACN) for adults 19-64. Where the UK
+  // sets no RNI (vitamins E and K, biotin, pantothenic acid, manganese) the
+  // label NRV is used instead.
+  const UK_ADULT = {
+    salt: 6, addedSugars: 30, fiber: 30, caffeine: 400,
+    vitD: 10, vitC: 40, vitE: 12, vitK: 75, biotin: 50, pantothenic: 6, folate: 200, vitB12: 1.5,
+    calcium: 700, phosphorus: 550, potassium: 3500, copper: 1.2, manganese: 2, iodine: 140,
+  };
+
   const PRESETS = {
-    fda: { label: 'FDA Daily Values (food label)', targets: FDA_DV },
+    uk_ri: { label: 'UK food label Reference Intakes', targets: UK_RI },
+    uk_male: {
+      label: 'UK adult man, 19–64 (RNI)',
+      targets: Object.assign({}, UK_ADULT, {
+        energy: 2500, protein: 55.5, carbs: 313, fat: 97, satFat: 30,
+        vitA: 700, thiamin: 1.0, riboflavin: 1.3, niacin: 17, vitB6: 1.4,
+        magnesium: 300, iron: 8.7, zinc: 9.5, selenium: 75,
+      }),
+    },
+    uk_female: {
+      label: 'UK adult woman, 19–64 (RNI)',
+      targets: Object.assign({}, UK_ADULT, {
+        energy: 2000, protein: 45, carbs: 250, fat: 78, satFat: 20,
+        vitA: 600, thiamin: 0.8, riboflavin: 1.1, niacin: 13, vitB6: 1.2,
+        magnesium: 270, iron: 14.8, zinc: 7, selenium: 60,
+      }),
+    },
+    fda: { label: 'US FDA Daily Values (food label)', targets: FDA_DV },
     male: {
-      label: 'Adult man, 19–50 (RDA/AI)',
+      label: 'US adult man, 19–50 (RDA/AI)',
       targets: Object.assign({}, FDA_DV, {
         energy: 2500, protein: 56, carbs: 310, fat: 83, fiber: 38, addedSugars: 62, satFat: 28,
         omega3ALA: 1.6, omega6LA: 17,
@@ -103,7 +141,7 @@
       }),
     },
     female: {
-      label: 'Adult woman, 19–50 (RDA/AI)',
+      label: 'US adult woman, 19–50 (RDA/AI)',
       targets: Object.assign({}, FDA_DV, {
         energy: 2000, protein: 46, carbs: 250, fat: 67, fiber: 25, addedSugars: 50, satFat: 22,
         omega3ALA: 1.1, omega6LA: 12,
@@ -142,6 +180,10 @@
       const v = convertUnit(n.amount, n.unit, def.unit);
       if (v != null) return v;
     }
+    if (def.key === 'salt') {
+      const na = valuePer100(food, BY_KEY.sodium);
+      if (na != null) return (na * 2.5) / 1000;
+    }
     if (def.key === 'energy') {
       const p = valuePer100(food, BY_KEY.protein);
       const c = valuePer100(food, BY_KEY.carbs);
@@ -174,7 +216,8 @@
     { id: 'other', label: 'Other compounds' },
   ];
 
-  function deepGroupOf(number) {
+  function deepGroupOf(number, hint) {
+    if (hint) return hint;
     const n = parseFloat(number);
     if (isNaN(n)) return 'other';
     if ((n >= 209 && n < 220) || n === 287) return 'sugars';
@@ -187,8 +230,15 @@
     return 'proximates';
   }
 
+  // Household measures in US/imperial units are dropped so everything is metric.
+  const IMPERIAL = /\b(cups?|c\.|tbsps?|tablespoons?|tsps?|teaspoons?|oz|ounces?|fl\.? ?oz|lbs?|pounds?|pints?|pt|quarts?|qt|gallons?|inch(es)?)\b/i;
+  function metricPortion(label) {
+    const clean = String(label).replace(/\s*\([^()]*["”][^()]*\)/g, '').trim();
+    return IMPERIAL.test(clean) ? null : clean;
+  }
+
   window.Nutrients = {
     NUTRIENTS, BY_KEY, GROUPS, PRESETS, DEEP_GROUPS,
-    normUnit, convertUnit, valuePer100, trackedPer100, deepGroupOf,
+    normUnit, convertUnit, valuePer100, trackedPer100, deepGroupOf, metricPortion,
   };
 })();

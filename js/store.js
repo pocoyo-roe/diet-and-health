@@ -26,8 +26,8 @@
 
   const defaultSettings = () => ({
     apiKey: '',
-    preset: 'fda',
-    targets: Object.assign({}, Nutrients.PRESETS.fda.targets),
+    preset: 'uk_ri',
+    targets: Object.assign({}, Nutrients.PRESETS.uk_ri.targets),
   });
 
   const state = {
