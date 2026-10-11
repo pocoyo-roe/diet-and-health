@@ -34,13 +34,15 @@ It's plain HTML/CSS/JS with no build step:
 
 - Open `index.html` directly in your browser, **or**
 - serve the folder: `python3 -m http.server 8000`, then open http://localhost:8000, **or**
-- publish it with GitHub Pages (Settings → Pages → deploy from branch) to use it on your phone.
+- use the hosted version at https://pocoyo-roe.github.io/diet-and-health/ (GitHub Pages, deployed from this repo's default branch).
 
 ## USDA API key
 
 Without a key the app uses the shared `DEMO_KEY`, which only allows a few requests per
 hour. Get your own free key at https://fdc.nal.usda.gov/api-key-signup and paste it
-into **Settings → USDA API key** (it is stored only in your browser).
+into the app's own **Settings** tab → *USDA API key* (not GitHub's settings). It is stored only in
+your browser, so enter it once on each device you use. Never commit the key to this repo — the
+repo and site are public.
 
 ## Notes on the data
 
