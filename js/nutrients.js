@@ -41,7 +41,7 @@
     { key: 'pantothenic', name: 'Pantothenic acid (B5)', unit: 'mg', group: 'vitamins', nums: ['410'] },
     { key: 'vitB6', name: 'Vitamin B6', unit: 'mg', group: 'vitamins', nums: ['415'] },
     { key: 'biotin', name: 'Biotin (B7)', unit: 'µg', group: 'vitamins', nums: ['416'] },
-    { key: 'folate', name: 'Folate (DFE)', unit: 'µg', group: 'vitamins', nums: ['435', '417'] },
+    { key: 'folate', name: 'Folate', unit: 'µg', group: 'vitamins', nums: ['435', '417'] },
     { key: 'vitB12', name: 'Vitamin B12', unit: 'µg', group: 'vitamins', nums: ['418'] },
     { key: 'choline', name: 'Choline', unit: 'mg', group: 'vitamins', nums: ['421'] },
 

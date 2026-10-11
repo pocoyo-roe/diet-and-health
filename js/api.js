@@ -66,8 +66,11 @@
     for (const row of data.foods) {
       const n = row[1].toLowerCase();
       if (!words.every((w) => n.includes(w))) continue;
-      // Prefer names that start with the first word, then shorter (more generic) names.
-      const score = (n.startsWith(words[0]) ? 0 : 1000) + (n.split(',')[0].includes(words[0]) ? 0 : 500) + n.length;
+      // Prefer foods whose main name (before the first comma) holds the search
+      // words, then names starting with one of them, then shorter (more generic) names.
+      const head = n.split(',')[0];
+      const score = words.filter((w) => !head.includes(w)).length * 300
+        + (words.some((w) => n.startsWith(w)) ? 0 : 200) + n.length;
       hits.push([score, row]);
     }
     hits.sort((a, b) => a[0] - b[0]);
@@ -132,7 +135,11 @@
   function offFood(p) {
     const portions = [];
     const sq = Number(p.serving_quantity);
-    if (sq > 0) portions.push({ label: `1 serving${p.serving_size ? ` (${p.serving_size})` : ` (${round(sq, 1)} g)`}`, grams: sq });
+    if (sq > 0) {
+      const size = (p.serving_size || '').trim();
+      const label = !size ? `1 serving (${round(sq, 1)} g)` : size.includes('(') ? size : `1 serving (${size})`;
+      portions.push({ label, grams: sq });
+    }
     const pq = Number(p.product_quantity);
     if (pq > 0 && pq <= 5000 && pq !== sq) portions.push({ label: `Whole pack (${p.quantity || round(pq, 1) + ' g'})`, grams: pq });
     return {
