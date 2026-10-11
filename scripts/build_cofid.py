@@ -47,13 +47,25 @@ OTHER = {"ALCO"}
 UNIT_RE = re.compile(r"\s*\(([^()]*)\)\s*$")
 
 
-def split_header(h):
+PER_FOOD = re.compile(r"\s*(per|/)\s*100\s*g?\s*(food|fd)\b.*$", re.I)
+PER_FA = re.compile(r"(/|per)\s*100\s*g?\s*(fa\b|fatty acid)", re.I)
+FA_SHEETS = {"1.8 (SFA per 100gFood)", "1.10 (MUFA per 100gFood)", "1.12 (PUFA per 100gFood)"}
+PROXIMATES = {"WATER", "TOTNIT", "PROT", "FAT", "CHO", "KCALS", "KJ", "ENGFIB", "AOACFIB"}
+RENAME = {"ENGFIB": "Fibre (NSP, Englyst)", "AOACFIB": "Fibre (AOAC)", "KCALS": "Energy (kcal)", "KJ": "Energy (kJ)",
+          "VITK1": "Vitamin K1 (phylloquinone)", "FOLT": "Folate (total)"}
+
+
+def split_header(h, long_name, code, sheet):
+    """Return (display name, unit) for a nutrient column."""
     h = (h or "").strip()
     m = UNIT_RE.search(h)
     unit = m.group(1).strip() if m else ""
-    name = UNIT_RE.sub("", h) if m else h
-    name = re.sub(r"\s*/\s*100\s*g?\s*food\b", "", name, flags=re.I).strip()
-    return name, {"ug": "µg", "kj": "kJ"}.get(unit.lower(), unit)
+    short = PER_FOOD.sub("", UNIT_RE.sub("", h)).strip()
+    name = PER_FOOD.sub("", (long_name or "").strip()).strip() or short
+    if sheet in FA_SHEETS and short and short not in name:
+        name = f"{name} ({short})"
+    name = RENAME.get(code, name)
+    return name[:1].upper() + name[1:], {"ug": "µg", "kj": "kJ"}.get(unit.lower(), unit)
 
 
 def parse_value(v):
@@ -78,21 +90,21 @@ def main(src, out):
     order = []
     for sheet, group in SHEETS.items():
         rows = list(wb[sheet].iter_rows(values_only=True))
-        headers, codes = rows[0], rows[1]
+        headers, codes, longs = rows[0], rows[1], rows[2]
         cols = []
         for c in range(7, len(headers)):
             code = codes[c] if c < len(codes) else None
             if not code or not headers[c]:
                 continue
             code = str(code).strip()
-            name, unit = split_header(str(headers[c]))
-            if "/100g fa" in str(headers[c]).lower() or "per 100g fatty acid" in name.lower():
+            if PER_FA.search(str(headers[c])) or PER_FA.search(str(longs[c] or "")):
                 continue  # per-100 g-fatty-acid columns; we only want per 100 g food
+            name, unit = split_header(str(headers[c]), longs[c] if c < len(longs) else None, code, sheet)
             key = USDA.get(code, "c:" + code)
             if key in index:
                 continue
             g = "sugars" if code in SUGARS else "other" if code in OTHER else group
-            if sheet == "1.3 Proximates" and ("FA" in code or "FOD" in code or code == "CHOL"):
+            if sheet == "1.3 Proximates" and code not in PROXIMATES | SUGARS | OTHER:
                 g = "lipids"
             index[key] = len(nutrients)
             nutrients.append([key, name, unit, g])
