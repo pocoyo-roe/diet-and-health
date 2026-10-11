@@ -1,0 +1,21 @@
+name: Build UK food data (CoFID)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openpyxl==3.1.5
+      - name: Download CoFID
+        run: python scripts/fetch_cofid.py /tmp/cofid.xlsx
+      - name: Inspect
+        run: python scripts/inspect_xlsx.py /tmp/cofid.xlsx
